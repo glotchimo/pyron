@@ -1,0 +1,18 @@
+[tool.poetry]
+name = "pyron"
+version = "0.1.0"
+description = "A hand-implemented neural network (coursework for CSCD496 Machine Learning)"
+authors = ["Elliott Maguire <glotchimo@pm.me>"]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+numpy = "^1.22.2"
+
+[tool.poetry.dev-dependencies]
+black = "^22.1.0"
+pytest = "^7.0.1"
+flake8 = "^4.0.1"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
