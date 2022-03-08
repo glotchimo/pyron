@@ -10,18 +10,17 @@ layers, state, and functions relevant to the network.
 import math
 from typing import Any, List
 
-import math_util as mu
-import nn_layer
+import utils
 
 import numpy as np
 from numpy.typing import NDArray
 
 
 class NeuralLayer:
-    def __init__(self, d: int = 1, act: str = "tanh") -> NeuralLayer:
+    def __init__(self, nodes: int = 1, act: str = "tanh") -> NeuralLayer:
         """Initialize `NeuralLayer`
 
-        :param d: the number of NON-bias nodes in the layer
+        :param nodes: the number of NON-bias nodes in the layer
         :param act: the activation function. It will not be useful/used, regardlessly, at the input layer.
 
         Available activation functions include:
@@ -30,11 +29,10 @@ class NeuralLayer:
         - 'iden': the identity function
         - 'relu': the ReLU function
         """
+        self.nodes: int = nodes
 
-        self.d: int = d
-
-        self.act: Any = eval("mu.MyMath." + act)
-        self.act_de: Any = eval("mu.MyMath." + act + "_de")
+        self.act: Any = eval("utils." + act)
+        self.act_de: Any = eval("utils." + act + "_de")
 
         self.S: NDArray = None
         self.X: NDArray = None
@@ -46,15 +44,15 @@ class NeuralLayer:
 class NeuralNetwork:
     def __init__(self) -> NeuralNetwork:
         """Initialize `NeuralNetwork`"""
-        self.layers: List[nn_layer.NeuralLayer] = []
+        self.layers: List[NeuralLayer] = []
         self.L: int = -1
 
-    def add_layer(self, d: int = 1, act: str = "tanh"):
+    def add_layer(self, nodes: int = 1, act: str = "tanh"):
         """The newly added layer is always added AFTER all existing layers.
         The firstly added layer is the input layer.
         The most recently added layer is the output layer.
 
-        :param d: number of nodes exluding bias node
+        :param nodes: number of nodes excluding bias node
         :param act: activation function to be supplied by the user (default: tanh)
 
         Available activation functions include:
@@ -63,11 +61,17 @@ class NeuralNetwork:
         - 'iden': the identity function
         - 'relu': the ReLU function
         """
+        self.layers = np.append(NeuralLayer(nodes=nodes, act=act))
 
     def _init_weights(self):
         """Initialize every layer's edge weights with random numbers from [-1/sqrt(d),1/sqrt(d)],
         where d is the number of nonbias node of the layer
         """
+        for layer in self.layers:
+            layer.W = [
+                np.random.uniform(-1 / np.sqrt(self.d), 1 / np.sqrt(d))
+                for _ in range(d)
+            ]
 
     def fit(
         self,
@@ -96,11 +100,8 @@ class NeuralNetwork:
 
         :return: n x 1 matrix, n is the number of samples, every row is the predicted class id.
         """
-        X: NDArray = np.reshape(X, -1)
-        for i in range(1, self.L + 1):
-            self.layers[i - 1]
 
-    def error(self, X: NDArray, Y: NDArray):
+    def error(self, X: NDArray, Y: NDArray) -> float:
         """
         :param X: n x d matrix, the sample batch, excluding the bias feature 1 column.
                   n is the number of samples.
@@ -112,3 +113,9 @@ class NeuralNetwork:
 
         :return: the percentage of misclassfied samples
         """
+
+    def _feed_forward(self):
+        for i in range(1, self.L + 1):
+            self.layers[i].S = self.layers[i - 1].X @ self.layers[i].W
+            self.layers[i].X = self.act(self.layers[i])
+            self.layers[i].X = np.insert(X, 0, 1, axis=1)

@@ -84,7 +84,7 @@ def tanh(x: NDArray) -> NDArray:
 
     :return: the numpy array where every element is tanh of the corresponding element in array x
     """
-    return np.vectorize(np.tanh)(x)
+    return np.array(np.vectorize(np.tanh)(x))
 
 
 def tanh_de(x: NDArray) -> NDArray:
@@ -94,15 +94,17 @@ def tanh_de(x: NDArray) -> NDArray:
 
     :return: the numpy array where every element is tanh derivative of the corresponding element in array x
     """
+    return x
 
 
 def logis(x: NDArray) -> NDArray:
-    """Logistic function
+    """Vectorized logistic function
 
     :param x: an array type of real numbers
 
     :return: the numpy array where every element is logistic of the corresponding element in array x
     """
+    return np.vectorize(lambda s: 1 / (1 + np.exp(-s)))(x)
 
 
 def logis_de(x: NDArray) -> NDArray:
@@ -113,15 +115,17 @@ def logis_de(x: NDArray) -> NDArray:
     :return: the numpy array where every element is logistic derivative of the
              corresponding element in array x
     """
+    return x
 
 
 def iden(x: NDArray) -> NDArray:
-    """Identity function
+    """Vectorized identity function
 
     :param x: an array type of real numbers
 
     :return: the numpy array where every element is the same as the corresponding element in array x
     """
+    return np.vectorize(np.identity)(x)
 
 
 def iden_de(x: NDArray) -> NDArray:
@@ -131,15 +135,17 @@ def iden_de(x: NDArray) -> NDArray:
 
     :return: the numpy array of all zeros of the same shape of x.
     """
+    return x
 
 
 def relu(x: NDArray) -> NDArray:
-    """The ReLU function
+    """Vectorized ReLU function
 
     :param x: an array type of real numbers
 
     :return: the numpy array where every element is the max of: zero vs. the corresponding element in x.
     """
+    return np.vectorize(np.maximum)(0, x)
 
 
 def _relu_de_scaler(x: NDArray) -> NDArray:
@@ -149,6 +155,7 @@ def _relu_de_scaler(x: NDArray) -> NDArray:
 
     :return: 1, if x > 0; 0, otherwise.
     """
+    return x
 
 
 def relu_de(x: NDArray) -> NDArray:
@@ -158,3 +165,4 @@ def relu_de(x: NDArray) -> NDArray:
 
     :return: the numpy array where every element is the _relu_de_scaler of the corresponding element in x.
     """
+    return x

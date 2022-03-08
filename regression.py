@@ -10,9 +10,9 @@ batch gradient descent and stochastic gradient descent methods of fitting.
 import math
 import sys
 
-import numpy as np
+from utils import z_transform
 
-from misc.utils import MyUtils
+import numpy as np
 
 
 class LinearRegression:
@@ -23,7 +23,7 @@ class LinearRegression:
 
     def fit(self, X, y, CF=True, lam=0, eta=0.01, epochs=1000, degree=1):
         self.degree = degree
-        X = MyUtils.z_transform(X, degree=self.degree)
+        X = z_transform(X, degree=self.degree)
 
         if CF:
             self._fit_cf(X, y, lam)
@@ -34,7 +34,8 @@ class LinearRegression:
         """Fit with closed form method"""
         X = np.insert(X, 0, 1, axis=1)
         X_t = np.transpose(X)
-        self.w = np.linalg.pinv(X_t @ X + (lam * np.identity(len(X[0])))) @ X_t @ y
+        self.w = np.linalg.pinv(
+            X_t @ X + (lam * np.identity(len(X[0])))) @ X_t @ y
 
     def _fit_gd(self, X, y, lam=0, eta=0.01, epochs=1000):
         """Fit with gradient descent method"""
@@ -54,12 +55,12 @@ class LinearRegression:
             self.w = a @ self.w + b
 
     def predict(self, X):
-        X = MyUtils().z_transform(X, degree=self.degree)
+        X = z_transform(X, degree=self.degree)
         X = np.insert(X, 0, 1, axis=1)
         return X @ self.w
 
     def error(self, X, y):
-        X = MyUtils.z_transform(X, degree=self.degree)
+        X = z_transform(X, degree=self.degree)
         X = np.insert(X, 0, 1, axis=1)
         n, d = X.shape
         return np.sum(np.power(X @ self.w - y, 2)) / n
@@ -83,7 +84,7 @@ class LogisticRegression:
         degree: int = 1,
     ):
         self.degree = degree
-        X = MyUtils.z_transform(X, degree=self.degree)
+        X = z_transform(X, degree=self.degree)
         n, d = X.shape
         X = np.insert(X, 0, 1, axis=1)
         y = np.array(y).reshape(-1, 1)
@@ -104,7 +105,7 @@ class LogisticRegression:
         for i in range(iterations):
             s: NDArray = y * (X @ self.w)
             self.w = (1 - ((2 * lam * eta) / n)) * self.w + step * (
-                X.T @ (y * LogisticRegression._v_sigmoid(-s))
+                X.T @ (y * LogisticRegression._vsigmoid(-s))
             )
 
     def _fit_sgd(self, X, y, lam, eta, iterations, mini_batch_size):
@@ -122,13 +123,13 @@ class LogisticRegression:
 
             s: NDArray = y_p * (X_p @ self.w)
             self.w = (1 - ((2 * lam * eta) / n_p)) * self.w + step * (
-                y_p * LogisticRegression._v_sigmoid(-s).T @ X_p
+                y_p * LogisticRegression.v_sigmoid(-s).T @ X_p
             ).T
 
     def predict(self, X: NDArray) -> NDArray:
-        X = MyUtils.z_transform(X, degree=self.degree)
+        X = z_transform(X, degree=self.degree)
         X = np.insert(X, 0, 1, axis=1)
-        return LogisticRegression._v_sigmoid(X @ self.w)
+        return LogisticRegression.v_sigmoid(X @ self.w)
 
     def error(self, X, y) -> int:
         misclassified: int = 0
@@ -140,10 +141,12 @@ class LogisticRegression:
 
         return misclassified
 
-    def _v_sigmoid(s) -> NDArray:
+    @staticmethod
+    def v_sigmoid(s) -> NDArray:
         """Vectorized sigmoid activation function"""
-        return np.vectorize(LogisticRegression._sigmoid)(s)
+        return np.vectorize(LogisticRegression.sigmoid)(s)
 
-    def _sigmoid(s) -> float:
+    @staticmethod
+    def sigmoid(s) -> float:
         """Sigmoid activation function"""
         return 1 / (1 + np.exp(-s))
