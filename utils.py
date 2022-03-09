@@ -6,7 +6,7 @@ This module contains various transformation, normalization, and activation funct
 """
 
 import math
-from typing import List
+from typing import Callable, List
 
 import numpy as np
 from numpy.typing import NDArray
@@ -84,7 +84,7 @@ def tanh(x: NDArray) -> NDArray:
 
     :return: the numpy array where every element is tanh of the corresponding element in array x
     """
-    return np.array(np.vectorize(np.tanh)(x))
+    return np.vectorize(np.tanh)(x)
 
 
 def tanh_de(x: NDArray) -> NDArray:
@@ -94,7 +94,8 @@ def tanh_de(x: NDArray) -> NDArray:
 
     :return: the numpy array where every element is tanh derivative of the corresponding element in array x
     """
-    return x
+    f: Callable = lambda s: 1 - np.power(np.tanh(s), 2)
+    return np.vectorize(f)(x)
 
 
 def logis(x: NDArray) -> NDArray:
@@ -104,7 +105,8 @@ def logis(x: NDArray) -> NDArray:
 
     :return: the numpy array where every element is logistic of the corresponding element in array x
     """
-    return np.vectorize(lambda s: 1 / (1 + np.exp(-s)))(x)
+    f: Callable = lambda s: 1 / (1 + np.exp(-s))
+    return np.vectorize(f)(x)
 
 
 def logis_de(x: NDArray) -> NDArray:
@@ -115,30 +117,33 @@ def logis_de(x: NDArray) -> NDArray:
     :return: the numpy array where every element is logistic derivative of the
              corresponding element in array x
     """
-    return x
+    f: Callable = lambda s: 1 / (1 + np.exp(-s))
+    g: Callable = lambda s: f(s) * (1 - f(s))
+    return np.vectorize(g)(x)
 
 
-def iden(x: NDArray) -> NDArray:
+def iden(x: List) -> NDArray:
     """Vectorized identity function
 
     :param x: an array type of real numbers
 
     :return: the numpy array where every element is the same as the corresponding element in array x
     """
-    return np.vectorize(np.identity)(x)
+    return np.array(x)
 
 
-def iden_de(x: NDArray) -> NDArray:
+def iden_de(x: List) -> NDArray:
     """The derivative of the identity function
 
     :param x: an array type of real numbers
 
-    :return: the numpy array of all zeros of the same shape of x.
+    :return: the numpy array of all ones of the same shape of x.
     """
-    return x
+    x: NDArray = np.array(x)
+    return np.ones(x.shape)
 
 
-def relu(x: NDArray) -> NDArray:
+def relu(x: List) -> NDArray:
     """Vectorized ReLU function
 
     :param x: an array type of real numbers
@@ -148,21 +153,12 @@ def relu(x: NDArray) -> NDArray:
     return np.vectorize(np.maximum)(0, x)
 
 
-def _relu_de_scaler(x: NDArray) -> NDArray:
-    """The derivative of the ReLU function. Scaler version.
-
-    :param x: a real number
-
-    :return: 1, if x > 0; 0, otherwise.
-    """
-    return x
-
-
 def relu_de(x: NDArray) -> NDArray:
     """The derivative of the ReLU function
 
     :param x: an array type of real numbers
 
-    :return: the numpy array where every element is the _relu_de_scaler of the corresponding element in x.
+    :return: 1, if x > 0; 0, otherwise.
     """
-    return x
+    f: Callable = lambda s: 1 if s > 0 else 0
+    return np.vectorize(f)(x)

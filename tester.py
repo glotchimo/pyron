@@ -1,5 +1,6 @@
 import sys
 
+from neural import NeuralLayer, NeuralNetwork
 from utils import (
     z_transform,
     tanh,
@@ -21,20 +22,13 @@ verbose = True
 
 def main():
     passed_math_util = test_math_util()
+    assert passed_math_util
     passed_add_layer = test_add_layer()
+    assert passed_add_layer
     passed_init_weights = test_init_weights()
-
+    assert passed_init_weights
     passed_seeded_weights = test_seeded_weights()
-
-    if not passed_seeded_weights:
-        print(
-            "Additional tests cannot be accurately performed without a set of seeded weights.\nUnder nn.NeuralNetwork._init_weights, please use weight_rng = np.random.default_rng(2142) and weight_rng.uniform used to generate weights."
-        )
-        print(
-            f"Current results:\npassed_math_util: {passed_math_util}, passed_add_layer: {passed_add_layer}\n\
-            passed_init_weights{passed_init_weights}, passed_seeded_weights: {passed_seeded_weights}"
-        )
-        return
+    assert passed_seeded_weights
 
     (X_train, y_train, X_test, y_test) = loadData()
 
@@ -47,9 +41,9 @@ def test_seeded_weights():
     # build the network
     nuts = NeuralNetwork()
 
-    nuts.add_layer(d=d)  # input layer - 0
-    nuts.add_layer(d=5, act="relu")  # hidden layer - 1
-    nuts.add_layer(d=k, act="logis")  # output layer
+    nuts.add_layer(nodes=d)  # input layer - 0
+    nuts.add_layer(nodes=5, act="relu")  # hidden layer - 1
+    nuts.add_layer(nodes=k, act="logis")  # output layer
 
     nuts._init_weights()
 
@@ -76,15 +70,11 @@ def test_init_weights():
     # build the network
     nuts = NeuralNetwork()
 
-    nuts.add_layer(d=d)  # input layer - 0
-    nuts.add_layer(d=5, act="relu")  # hidden layer - 1
-    nuts.add_layer(d=k, act="logis")  # output layer
+    nuts.add_layer(nodes=d)  # input layer - 0
+    nuts.add_layer(nodes=5, act="relu")  # hidden layer - 1
+    nuts.add_layer(nodes=k, act="logis")  # output layer
 
     nuts._init_weights()
-
-    # Check dimensionality of weights
-    if nuts.layers[0].W != None:
-        print("")
 
     shapes = [(11, 5), (6, 8)]
     for layer, dim in zip(nuts.layers[1:], shapes):
@@ -106,10 +96,11 @@ def test_add_layer():
 
     passed = True
 
-    nuts.add_layer(d=5, act="logis")
+    nuts.add_layer(nodes=5, act="logis")
     if nuts.L != 0:
         if verbose:
-            print(f"test_add_layer: After adding a layer, L = 0. Found L = {nuts.L}")
+            print(
+                f"test_add_layer: After adding a layer, L = 0. Found L = {nuts.L}")
         passed = False
     if len(nuts.layers) != 1:
         if verbose:
@@ -289,7 +280,7 @@ def loadData(data_set="ionoshpere"):
     return (X_train, y_train, X_test, y_test)
 
 
-def load_weights(file="seeded_weights.npz"):
+def load_weights(file="data/seeded_weights.npz"):
     container = np.load(file)
     weight_list = [container[key] for key in container]
     return weight_list

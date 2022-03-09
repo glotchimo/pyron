@@ -17,7 +17,7 @@ from numpy.typing import NDArray
 
 
 class NeuralLayer:
-    def __init__(self, nodes: int = 1, act: str = "tanh") -> NeuralLayer:
+    def __init__(self, nodes: int = 1, act: str = "tanh"):
         """Initialize `NeuralLayer`
 
         :param nodes: the number of NON-bias nodes in the layer
@@ -36,13 +36,13 @@ class NeuralLayer:
 
         self.S: NDArray = None
         self.X: NDArray = None
-        self.Delta = None
-        self.G = None
-        self.W = None
+        self.Delta: NDArray = None
+        self.G: NDArray = None
+        self.W: NDArray = None
 
 
 class NeuralNetwork:
-    def __init__(self) -> NeuralNetwork:
+    def __init__(self):
         """Initialize `NeuralNetwork`"""
         self.layers: List[NeuralLayer] = []
         self.L: int = -1
@@ -61,17 +61,19 @@ class NeuralNetwork:
         - 'iden': the identity function
         - 'relu': the ReLU function
         """
-        self.layers = np.append(NeuralLayer(nodes=nodes, act=act))
+        self.layers = np.append(self.layers, NeuralLayer(nodes=nodes, act=act))
+        self.L = self.L + 1
 
     def _init_weights(self):
         """Initialize every layer's edge weights with random numbers from [-1/sqrt(d),1/sqrt(d)],
         where d is the number of nonbias node of the layer
         """
-        for layer in self.layers:
-            layer.W = [
-                np.random.uniform(-1 / np.sqrt(self.d), 1 / np.sqrt(d))
-                for _ in range(d)
-            ]
+        for i, layer in enumerate(self.layers):
+            n: int = self.layers[i - 1].nodes + 1
+            d: int = layer.nodes
+            a: NDArray = np.random.uniform(-1 / np.sqrt(layer.nodes),
+                                           1 / np.sqrt(layer.nodes), n * d)
+            layer.W = a.reshape((n, d))
 
     def fit(
         self,
