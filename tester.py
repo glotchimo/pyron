@@ -99,8 +99,7 @@ def test_add_layer():
     nuts.add_layer(nodes=5, act="logis")
     if nuts.L != 0:
         if verbose:
-            print(
-                f"test_add_layer: After adding a layer, L = 0. Found L = {nuts.L}")
+            print(f"test_add_layer: After adding a layer, L = 0. Found L = {nuts.L}")
         passed = False
     if len(nuts.layers) != 1:
         if verbose:

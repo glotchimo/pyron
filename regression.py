@@ -34,8 +34,7 @@ class LinearRegression:
         """Fit with closed form method"""
         X = np.insert(X, 0, 1, axis=1)
         X_t = np.transpose(X)
-        self.w = np.linalg.pinv(
-            X_t @ X + (lam * np.identity(len(X[0])))) @ X_t @ y
+        self.w = np.linalg.pinv(X_t @ X + (lam * np.identity(len(X[0])))) @ X_t @ y
 
     def _fit_gd(self, X, y, lam=0, eta=0.01, epochs=1000):
         """Fit with gradient descent method"""

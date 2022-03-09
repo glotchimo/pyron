@@ -71,8 +71,9 @@ class NeuralNetwork:
         for i, layer in enumerate(self.layers):
             n: int = self.layers[i - 1].nodes + 1
             d: int = layer.nodes
-            a: NDArray = np.random.uniform(-1 / np.sqrt(layer.nodes),
-                                           1 / np.sqrt(layer.nodes), n * d)
+            a: NDArray = np.random.uniform(
+                -1 / np.sqrt(layer.nodes), 1 / np.sqrt(layer.nodes), n * d
+            )
             layer.W = a.reshape((n, d))
 
     def fit(
