@@ -96,6 +96,58 @@ class NeuralNetwork:
         :param mini_batch_size: the size of each mini batch size, if SGD is True.
         """
         self._init_weights()
+        X = np.insert(X, 0, 1, axis=1)
+
+        if SGD:
+            mini_batch_size = (
+                n if mini_batch_size > n or mini_batch_size < 1 else mini_batch_size
+            )
+            self._fit_sgd(X, Y, eta, iterations, mini_batch_size)
+        else:
+            self._fit_bgd(X, Y, eta, iterations)
+
+    def _fit_bdg(
+        X: List[List[int]],
+        Y: List[List[int]],
+        eta: float = 0.01,
+        iterations: int = 1000,
+    ):
+        self._feed_forward()
+
+    def _fit_sgd(
+        X: List[List[int]],
+        Y: List[List[int]],
+        eta: float = 0.01,
+        iterations: int = 1000,
+        mini_batch_size: int = 1,
+    ):
+        n: int = len(y)
+        n_blocks: int = math.ceil(n / mini_batch_size)
+        for i in range(iterations):
+            start: int = (i % n_blocks) * mini_batch_size
+            end: int = min(start + mini_batch_size, n)
+            n_p: int = end - start
+            step: int = eta / n_p
+
+            X_p: NDArray = np.insert(X[start:end, :], 0, 1, axis=1)
+            Y_p: NDArray = Y[start:end, :]
+
+            self._feed_forward()
+
+            self.layers[self.L].Delta = (
+                2
+                * (self.layers[self.L].X[1:, :] - Y)
+                * (self.layers[self.L].act_de(self.layers[self.L].S))
+            )
+
+            self.layers[self.L].G = np.einsum(
+                "ij, ik -> jk", self.layers[self.L - 1], self.layers[self.L].Delta
+            ) * (1 / n_p)
+
+            for l in range(L - 1, 0, -1):
+                self.layers[l].Delta = self.layers[l].act_de(self.layers[l].S) * (
+                    self.layers[l + 1].Delta * np.transpose(a)
+                )
 
     def predict(self, X: NDArray) -> NDArray:
         """
