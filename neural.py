@@ -141,7 +141,8 @@ class NeuralNetwork:
             )
 
             self.layers[self.L].G = np.einsum(
-                "ij, ik -> jk", self.layers[self.L - 1], self.layers[self.L].Delta
+                "ij, ik -> jk", self.layers[self.L -
+                                            1], self.layers[self.L].Delta
             ) * (1 / n_p)
 
             for l in range(L - 1, 0, -1):
