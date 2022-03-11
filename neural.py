@@ -145,10 +145,17 @@ class NeuralNetwork:
                                             1], self.layers[self.L].Delta
             ) * (1 / n_p)
 
-            for l in range(L - 1, 0, -1):
+            for l in range(self.L - 1, 0, -1):
                 self.layers[l].Delta = self.layers[l].act_de(self.layers[l].S) * (
                     self.layers[l + 1].Delta * np.transpose(a)
                 )
+
+                self.layers[l] = np.einsum(
+                    "ij, ik -> jk", self.layers[l - 1], self.layers[l].Delta
+                ) * (1 / n_p)
+
+            for l in range(1, self.L):
+                self.layers[l].W = self.layers[l].W - eta * self.layers[l].G
 
     def predict(self, X: NDArray) -> NDArray:
         """
@@ -156,6 +163,9 @@ class NeuralNetwork:
 
         :return: n x 1 matrix, n is the number of samples, every row is the predicted class id.
         """
+        X = np.insert(X, 0, 1, axis=1)
+        self._feed_forward()
+        return self.layers[self.L].X[1:, :]
 
     def error(self, X: NDArray, Y: NDArray) -> float:
         """
@@ -169,6 +179,15 @@ class NeuralNetwork:
 
         :return: the percentage of misclassfied samples
         """
+        misclassified: int = 0
+        signals: NDArray = self.predict(X)
+        for i in range(len(y)):
+            for i in range(len(y[0])):
+                signals[i] = 1 if signals[i] > 0.5 else -1
+                if signals[i] != y[i]:
+                    misclassified += 1
+
+        return misclassified
 
     def _feed_forward(self):
         for i in range(1, self.L + 1):
