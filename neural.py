@@ -181,13 +181,14 @@ class NeuralNetwork:
         """
         misclassified: int = 0
         signals: NDArray = self.predict(X)
+        n, d = signals.shape
         for i in range(len(y)):
             for i in range(len(y[0])):
                 signals[i] = 1 if signals[i] > 0.5 else -1
                 if signals[i] != y[i]:
                     misclassified += 1
 
-        return misclassified
+        return (misclassified / n) * 100
 
     def _feed_forward(self):
         for i in range(1, self.L + 1):
