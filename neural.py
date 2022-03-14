@@ -17,10 +17,10 @@ from numpy.typing import NDArray
 
 
 class NeuralLayer:
-    def __init__(self, nodes: int = 1, act: str = "tanh"):
+    def __init__(self, d: int = 1, act: str = "tanh"):
         """Initialize `NeuralLayer`
 
-        :param nodes: the number of NON-bias nodes in the layer
+        :param d: the number of NON-bias nodes in the layer
         :param act: the activation function. It will not be useful/used, regardlessly, at the input layer.
 
         Available activation functions include:
@@ -29,7 +29,7 @@ class NeuralLayer:
         - 'iden': the identity function
         - 'relu': the ReLU function
         """
-        self.nodes: int = nodes
+        self.d: int = d
 
         self.act: Any = eval("utils." + act)
         self.act_de: Any = eval("utils." + act + "_de")
@@ -47,12 +47,12 @@ class NeuralNetwork:
         self.layers: List[NeuralLayer] = []
         self.L: int = -1
 
-    def add_layer(self, nodes: int = 1, act: str = "tanh"):
+    def add_layer(self, d: int = 1, act: str = "tanh"):
         """The newly added layer is always added AFTER all existing layers.
         The firstly added layer is the input layer.
         The most recently added layer is the output layer.
 
-        :param nodes: number of nodes excluding bias node
+        :param d: number of nodes excluding bias node
         :param act: activation function to be supplied by the user (default: tanh)
 
         Available activation functions include:
@@ -61,7 +61,7 @@ class NeuralNetwork:
         - 'iden': the identity function
         - 'relu': the ReLU function
         """
-        self.layers = np.append(self.layers, NeuralLayer(nodes=nodes, act=act))
+        self.layers = np.append(self.layers, NeuralLayer(d=d, act=act))
         self.L = self.L + 1
 
     def _init_weights(self):
@@ -69,10 +69,10 @@ class NeuralNetwork:
         where d is the number of nonbias node of the layer
         """
         for i, layer in enumerate(self.layers):
-            n: int = self.layers[i - 1].nodes + 1
-            d: int = layer.nodes
+            n: int = self.layers[i - 1].d + 1
+            d: int = layer.d
             a: NDArray = np.random.uniform(
-                -1 / np.sqrt(layer.nodes), 1 / np.sqrt(layer.nodes), n * d
+                -1 / np.sqrt(layer.d), 1 / np.sqrt(layer.d), n * d
             )
             layer.W = a.reshape((n, d))
 
@@ -96,7 +96,8 @@ class NeuralNetwork:
         :param mini_batch_size: the size of each mini batch size, if SGD is True.
         """
         self._init_weights()
-        X = np.insert(X, 0, 1, axis=1)
+        # X = np.insert(X, 0, 1, axis=1)
+        n, _ = X.shape
 
         if SGD:
             mini_batch_size = (
@@ -107,6 +108,7 @@ class NeuralNetwork:
             self._fit_bgd(X, Y, eta, iterations)
 
     def _fit_bdg(
+        self,
         X: List[List[int]],
         Y: List[List[int]],
         eta: float = 0.01,
@@ -115,13 +117,14 @@ class NeuralNetwork:
         self._feed_forward()
 
     def _fit_sgd(
+        self,
         X: List[List[int]],
         Y: List[List[int]],
         eta: float = 0.01,
         iterations: int = 1000,
         mini_batch_size: int = 1,
     ):
-        n: int = len(y)
+        n: int = len(Y)
         n_blocks: int = math.ceil(n / mini_batch_size)
         for i in range(iterations):
             start: int = (i % n_blocks) * mini_batch_size
@@ -132,11 +135,16 @@ class NeuralNetwork:
             X_p: NDArray = np.insert(X[start:end, :], 0, 1, axis=1)
             Y_p: NDArray = Y[start:end, :]
 
-            self._feed_forward()
+            self.layers[0].X = X_p
+            for l in range(1, self.L):
+                self.layers[l].S = self.layers[l - 1].X @ self.layers[l].W
+                self.layers[l].X = np.insert(
+                    self.layers[l].act(self.layers[l].S), 0, 1, axis=1
+                )
 
             self.layers[self.L].Delta = (
                 2
-                * (self.layers[self.L].X[1:, :] - Y)
+                * (self.layers[self.L].X[1:, :] - Y_p)
                 * (self.layers[self.L].act_de(self.layers[self.L].S))
             )
 
@@ -189,9 +197,3 @@ class NeuralNetwork:
                     misclassified += 1
 
         return (misclassified / n) * 100
-
-    def _feed_forward(self):
-        for i in range(1, self.L + 1):
-            self.layers[i].S = self.layers[i - 1].X @ self.layers[i].W
-            self.layers[i].X = self.act(self.layers[i])
-            self.layers[i].X = np.insert(X, 0, 1, axis=1)
