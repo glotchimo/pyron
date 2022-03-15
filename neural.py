@@ -96,36 +96,12 @@ class NeuralNetwork:
         :param mini_batch_size: the size of each mini batch size, if SGD is True.
         """
         self._init_weights()
-        # X = np.insert(X, 0, 1, axis=1)
         n, _ = X.shape
-
-        if SGD:
-            mini_batch_size = (
-                n if mini_batch_size > n or mini_batch_size < 1 else mini_batch_size
-            )
-            self._fit_sgd(X, Y, eta, iterations, mini_batch_size)
-        else:
-            self._fit_bgd(X, Y, eta, iterations)
-
-    def _fit_bdg(
-        self,
-        X: List[List[int]],
-        Y: List[List[int]],
-        eta: float = 0.01,
-        iterations: int = 1000,
-    ):
-        self._feed_forward()
-
-    def _fit_sgd(
-        self,
-        X: List[List[int]],
-        Y: List[List[int]],
-        eta: float = 0.01,
-        iterations: int = 1000,
-        mini_batch_size: int = 1,
-    ):
-        n: int = len(Y)
+        mini_batch_size = (
+            n if mini_batch_size > n or mini_batch_size < 1 else mini_batch_size
+        )
         n_blocks: int = math.ceil(n / mini_batch_size)
+
         for i in range(iterations):
             start: int = (i % n_blocks) * mini_batch_size
             end: int = min(start + mini_batch_size, n)
@@ -170,7 +146,7 @@ class NeuralNetwork:
         """
         :param X: n x d matrix, the sample batch, excluding the bias feature 1 column.
 
-        :return: n x 1 matrix, n is the number of samples, every row is the predicted class id.
+        :return: n x 1 matrix, n is the number of samples, every row is the predicted class ID.
         """
         X = np.insert(X, 0, 1, axis=1)
         self.layers[0].X = X
@@ -180,7 +156,11 @@ class NeuralNetwork:
                 self.layers[l].act(self.layers[l].S), 0, 1, axis=1
             )
 
-        return self.layers[self.L].X[:, 1:]
+        output: NDArray = np.zeros((len(X), 1))
+        output = np.array([np.argmax(self.layers[self.L].X[i])
+                          for i in range(len(X))])
+
+        return output
 
     def error(self, X: NDArray, Y: NDArray) -> float:
         """
@@ -194,13 +174,9 @@ class NeuralNetwork:
 
         :return: the percentage of misclassfied samples
         """
-        misclassified: int = 0
         signals: NDArray = self.predict(X)
-        n, d = signals.shape
-        for i in range(len(Y)):
-            for j in range(len(Y[0])):
-                signals[i, j] = 1 if signals[i, j] > 0.5 else -1
-                if signals[i, j] != Y[i, j]:
-                    misclassified += 1
 
-        return (misclassified / n)
+        err: NDArray = np.zeros((len(Y), 1))
+        err = np.array([np.argmax(Y[i]) for i in range(len(Y))])
+
+        return np.sum(signals != err) / len(Y)
