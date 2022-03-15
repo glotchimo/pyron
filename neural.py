@@ -136,7 +136,7 @@ class NeuralNetwork:
             Y_p: NDArray = Y[start:end, :]
 
             self.layers[0].X = X_p
-            for l in range(1, self.L):
+            for l in range(1, self.L + 1):
                 self.layers[l].S = self.layers[l - 1].X @ self.layers[l].W
                 self.layers[l].X = np.insert(
                     self.layers[l].act(self.layers[l].S), 0, 1, axis=1
@@ -144,22 +144,23 @@ class NeuralNetwork:
 
             self.layers[self.L].Delta = (
                 2
-                * (self.layers[self.L].X[1:, :] - Y_p)
+                * (self.layers[self.L].X[:, 1:] - Y_p)
                 * (self.layers[self.L].act_de(self.layers[self.L].S))
             )
 
             self.layers[self.L].G = np.einsum(
-                "ij, ik -> jk", self.layers[self.L -
-                                            1], self.layers[self.L].Delta
+                "ij,ik -> jk", self.layers[self.L -
+                                           1].X, self.layers[self.L].Delta
             ) * (1 / n_p)
 
             for l in range(self.L - 1, 0, -1):
                 self.layers[l].Delta = self.layers[l].act_de(self.layers[l].S) * (
-                    self.layers[l + 1].Delta * np.transpose(a)
+                    self.layers[l +
+                                1].Delta @ np.transpose(self.layers[l + 1].W)[:, 1:]
                 )
 
-                self.layers[l] = np.einsum(
-                    "ij, ik -> jk", self.layers[l - 1], self.layers[l].Delta
+                self.layers[l].G = np.einsum(
+                    "ij,ik -> jk", self.layers[l - 1].X, self.layers[l].Delta
                 ) * (1 / n_p)
 
             for l in range(1, self.L):
@@ -172,8 +173,14 @@ class NeuralNetwork:
         :return: n x 1 matrix, n is the number of samples, every row is the predicted class id.
         """
         X = np.insert(X, 0, 1, axis=1)
-        self._feed_forward()
-        return self.layers[self.L].X[1:, :]
+        self.layers[0].X = X
+        for l in range(1, self.L + 1):
+            self.layers[l].S = self.layers[l - 1].X @ self.layers[l].W
+            self.layers[l].X = np.insert(
+                self.layers[l].act(self.layers[l].S), 0, 1, axis=1
+            )
+
+        return self.layers[self.L].X[:, 1:]
 
     def error(self, X: NDArray, Y: NDArray) -> float:
         """
@@ -190,10 +197,10 @@ class NeuralNetwork:
         misclassified: int = 0
         signals: NDArray = self.predict(X)
         n, d = signals.shape
-        for i in range(len(y)):
-            for i in range(len(y[0])):
-                signals[i] = 1 if signals[i] > 0.5 else -1
-                if signals[i] != y[i]:
+        for i in range(len(Y)):
+            for j in range(len(Y[0])):
+                signals[i, j] = 1 if signals[i, j] > 0.5 else -1
+                if signals[i, j] != Y[i, j]:
                     misclassified += 1
 
-        return (misclassified / n) * 100
+        return (misclassified / n)

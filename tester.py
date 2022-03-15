@@ -1,8 +1,8 @@
 import sys
 
-from neural import NeuralLayer, NeuralNetwork
+from neural import NeuralNetwork, NeuralLayer
 from utils import (
-    z_transform,
+    normalize_0_1,
     tanh,
     tanh_de,
     logis,
@@ -13,24 +13,109 @@ from utils import (
     relu_de,
 )
 
-import numpy as np
-import pandas as pd
 import matplotlib.pyplot as plt
+import pandas as pd
+import numpy as np
+
 
 verbose = True
 
 
 def main():
-    passed_math_util = test_math_util()
-    assert passed_math_util
-    passed_add_layer = test_add_layer()
-    assert passed_add_layer
-    passed_init_weights = test_init_weights()
-    assert passed_init_weights
-    passed_seeded_weights = test_seeded_weights()
-    assert passed_seeded_weights
+    passed_math_util = (
+        passed_add_layer
+    ) = (
+        passed_init_weights
+    ) = passed_seeded_weights = passed_test_fit = passed_test_weights = False
 
+    passed_math_util = test_math_util()
+    passed_add_layer = test_add_layer()
+    passed_init_weights = test_init_weights()
+
+    print(
+        f"\n######### INITIAL RESULTS #########\npassed_math_util: {passed_math_util}, passed_add_layer: {passed_add_layer}, passed_init_weights: {passed_init_weights}"
+    )
+
+    if not (passed_math_util and passed_add_layer and passed_init_weights):
+        print(
+            "Stopping tester due to failed test of a fundamental functionality.\nPlease review the tester that failed."
+        )
+        return
+
+    # Checks to see if the fit method crashes from running a handful of iterations.
+    test_fit()
+
+    # Trains the weights and saves them to "weights.npz". Expected validation error is less than 0.04 or 4%.
+    train_and_save_weights()
+
+    test_saved_weights()  # Verifies the accuracy of the model's resulting weights
+
+
+def test_fit():
     (X_train, y_train, X_test, y_test) = loadData()
+    nuts = _createNN()
+    nuts.fit(X_train, y_train, eta=0.1, iterations=5, SGD=True, mini_batch_size=20)
+
+
+def test_saved_weights(file="weights.npz"):
+    (X_train, y_train, X_test, y_test) = loadData()
+
+    # loads weights into nuts
+    npz_weights = load_weights(file=file)
+    nuts = _createNN()
+    _import_weights(npz_weights, nuts)
+
+    train_error = nuts.error(X_train, y_train)
+    test_error = nuts.error(X_test, y_test)
+
+    print(
+        f"######### TRAINING RESULTS - Model error #########\nTrain: {np.round(train_error, 4)}, Test: {np.round(test_error, 4)}"
+    )
+    if test_error > 0.00001 and test_error < 0.05:
+        print("test_saved_weights: SUCCESS!!!")
+    else:
+        print(
+            f"test_saved_weights: Insufficient model accuracy. Expcected error less than 0.05 or 5%\nActual test error: {np.round(test_error, 4)}"
+        )
+    if test_error <= 0.00001:
+        print(
+            "test_saved_weights: Test error is suspiciously low. Please reevaluate your error method."
+        )
+    return False
+
+
+def _import_weights(npz_weights, nuts):
+    for ell in range(1, nuts.L + 1):
+        nuts.layers[ell].W = np.array(npz_weights[ell - 1])
+
+
+def train_and_save_weights():
+    (X_train, y_train, X_test, y_test) = loadData()
+    nuts = _createNN()
+    nuts.fit(X_train, y_train, eta=0.1, iterations=10000, SGD=True, mini_batch_size=20)
+    _save_weights(nuts)
+
+
+def _save_weights(nuts):
+    file = "weights.npz"
+    clearZ(file=file)
+    weights_list = []
+
+    for ell in range(1, nuts.L + 1):
+        cur_layer = nuts.layers[ell]
+        weights_list.append(cur_layer.W)
+
+    saveAllZ(weights_list, file=file)
+
+
+def _createNN(k=10, d=784):
+    nuts = NeuralNetwork()
+    nuts.add_layer(d=d)  # input layer - 0
+    nuts.add_layer(d=100, act="relu")  # hidden layer - 1
+    nuts.add_layer(d=30, act="relu")  # hiddent layer - 2
+    # output layer,    multi-class classification, #classes = k
+    nuts.add_layer(d=k, act="logis")
+    return nuts
 
 
 def test_seeded_weights():
@@ -41,9 +126,9 @@ def test_seeded_weights():
     # build the network
     nuts = NeuralNetwork()
 
-    nuts.add_layer(nodes=d)  # input layer - 0
-    nuts.add_layer(nodes=5, act="relu")  # hidden layer - 1
-    nuts.add_layer(nodes=k, act="logis")  # output layer
+    nuts.add_layer(d=d)  # input layer - 0
+    nuts.add_layer(d=5, act="relu")  # hidden layer - 1
+    nuts.add_layer(d=k, act="logis")  # output layer
 
     nuts._init_weights()
 
@@ -70,11 +155,15 @@ def test_init_weights():
     # build the network
     nuts = NeuralNetwork()
 
-    nuts.add_layer(nodes=d)  # input layer - 0
-    nuts.add_layer(nodes=5, act="relu")  # hidden layer - 1
-    nuts.add_layer(nodes=k, act="logis")  # output layer
+    nuts.add_layer(d=d)  # input layer - 0
+    nuts.add_layer(d=5, act="relu")  # hidden layer - 1
+    nuts.add_layer(d=k, act="logis")  # output layer
 
     nuts._init_weights()
+
+    # Check dimensionality of weights
+    # if nuts.layers[0].W != None:
+    #     print("")
 
     shapes = [(11, 5), (6, 8)]
     for layer, dim in zip(nuts.layers[1:], shapes):
@@ -96,7 +185,7 @@ def test_add_layer():
 
     passed = True
 
-    nuts.add_layer(nodes=5, act="logis")
+    nuts.add_layer(d=5, act="logis")
     if nuts.L != 0:
         if verbose:
             print(f"test_add_layer: After adding a layer, L = 0. Found L = {nuts.L}")
@@ -228,15 +317,15 @@ def clearZ(file="output.npz"):
     f.close()
 
 
-def loadData(data_set="ionoshpere"):
+def loadData():
     k = 10
     d = 784
 
     # Reads the files into pandas dataframes from the respective .csv files.
-    path = "code_nn/MNIST"
-    df_X_train = pd.read_csv(f"{path}/X_train.csv", header=None)
+    path = "data/MNIST"
+    df_X_train = pd.read_csv(f"{path}/x_train.csv", header=None)
     df_y_train = pd.read_csv(f"{path}/y_train.csv", header=None)
-    df_X_test = pd.read_csv(f"{path}/X_test.csv", header=None)
+    df_X_test = pd.read_csv(f"{path}/x_test.csv", header=None)
     df_y_test = pd.read_csv(f"{path}/y_test.csv", header=None)
 
     # save in numpy arrays
@@ -279,7 +368,7 @@ def loadData(data_set="ionoshpere"):
     return (X_train, y_train, X_test, y_test)
 
 
-def load_weights(file="data/seeded_weights.npz"):
+def load_weights(file="seeded_weights.npz"):
     container = np.load(file)
     weight_list = [container[key] for key in container]
     return weight_list
